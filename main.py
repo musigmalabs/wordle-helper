@@ -142,8 +142,8 @@ def best_guess(candidates):
 
 class Wordle:
 
-    def __init__(self, blocked_words):
-        self.rules = []
+    def __init__(self, blocked_words=[]):
+        self.rules = [EqualsFilter('ne', w) for w in blocked_words]
     
     def valid_candidate(self, candidate_word):
         for rule in self.rules:
