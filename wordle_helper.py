@@ -49,6 +49,9 @@ class EqualsFilter:
         if self.operator == 'e':
             return self.word == word
         return self.word != word
+    
+    def __repr__(self):
+        return f'word {self.operator} {self.word}'
 
 
 class LocationFilter:
@@ -61,6 +64,9 @@ class LocationFilter:
         if self.operator == 'e':
             return word[self.location] == self.letter
         return word[self.location] != self.letter
+    
+    def __repr__(self):
+        return f'word[{self.location}] {self.operator} {self.letter}'
 
 
 class CountingFilter:
@@ -74,6 +80,9 @@ class CountingFilter:
             return word.count(self.letter) == self.count
         elif self.operator == 'ge':
             return word.count(self.letter) >= self.count
+    
+    def __repr__(self):
+        return f'word.count({self.letter}) {self.operator} {self.count}'
 
 class Result:
     """
@@ -87,28 +96,37 @@ class Result:
     def build_rules(self):
         rules = []
 
+        green = defaultdict(lambda: 0)
         grey = defaultdict(lambda: 0)
         yellow = defaultdict(lambda: 0)
 
+        for clue in self.result:
+            if clue.color == GREEN:
+                green[clue.letter] += 1
+            if clue.color == GREY:
+                grey[clue.letter] += 1
+            if clue.color == YELLOW:
+                yellow[clue.letter] += 1
+        
         for i, clue in enumerate(self.result):
+            letter = clue.letter
+
+            greens = green[letter]
+            greys = grey[letter]
+            yellows = yellow[letter]
+
             if clue.color == GREEN:
                 rules.append(LocationFilter('e', i, clue.letter))
-            elif clue.color == GREY:
-                grey[clue.letter] += 1
-            elif clue.color == YELLOW:
-                yellow[clue.letter] += 1
-                rules.append(LocationFilter('ne', i, clue.letter))
-
-        for clue_letter, count in yellow.items():
-            # If this letter also appears in grey tiles, we know this is the final count.
-            if clue_letter in grey:
-                rules.append(CountingFilter('e', count, clue_letter))
-                del grey[clue_letter]
-            else:
-                rules.append(CountingFilter('ge', count, clue_letter))
-        
-        for clue_letter, count in grey.items():
-            rules.append(CountingFilter('e', 0, clue_letter))
+            if clue.color == YELLOW:
+                if greys != 0:
+                    rules.append(CountingFilter('e', yellows + greens, letter))
+                else:
+                    rules.append(CountingFilter('ge', yellows, letter))
+                
+                rules.append(LocationFilter('ne', i, letter))
+            if clue.color == GREY:
+                if yellows + greens == 0:
+                    rules.append(CountingFilter('e', 0, letter))
         
         return rules
 
@@ -130,12 +148,12 @@ def score(hist, word):
     return s
 
 
-def best_guess(candidates):
+def best_guess(candidates, guesses):
     """
     Produces the best guess from given candidates.
     """
     hist = build_histogram(candidates)
-    ranked = sorted([(w, score(hist, w)) for w in candidates], key=lambda x: x[1], reverse=True)
+    ranked = sorted([(w, score(hist, w)) for w in candidates if w not in guesses], key=lambda x: x[1], reverse=True)
 
     return ranked[0][0]
 
@@ -144,6 +162,7 @@ class Wordle:
 
     def __init__(self, blocked_words=[]):
         self.rules = [EqualsFilter('ne', w) for w in blocked_words]
+        self.guesses = set()
     
     def valid_candidate(self, candidate_word):
         for rule in self.rules:
@@ -166,17 +185,13 @@ class Wordle:
         """
 
         candidates = self.filter_candidates(candidate_words)
-        return best_guess(candidates)
+        guess = best_guess(candidates, self.guesses)
+        self.guesses.add(guess)
+
+        return guess
 
     def submit_result(self, result):
         """
         Provide the result from submitting a guess to the wordle puzzle.
         """
         self.rules += result.build_rules()
-
-
-if __name__ == '__main__':
-    wordle = Wordle()
-    wordle.submit_result(Result([grey('a'), yellow('r'), yellow('o'), grey('s'), yellow('e')]))
-    wordle.submit_result(Result([grey('t'), yellow('e'), grey('n'), yellow('o'), green('r')]))
-    print (wordle.next_guess())
