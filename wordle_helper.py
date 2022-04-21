@@ -179,6 +179,9 @@ class Wordle:
         self.rules = [EqualsFilter('ne', w) for w in blocked_words]
         self.guesses = set()
     
+    def add_to_blocklist(self, word):
+        self.rules.append(EqualsFilter('ne', word))
+    
     def valid_candidate(self, candidate_word):
         for rule in self.rules:
             if not rule.is_valid(candidate_word):
@@ -211,13 +214,11 @@ class Wordle:
         Provide the result from submitting a guess to the wordle puzzle.
         """
         self.rules += result.build_rules()
-        #print(self.rules)
 
 
 if __name__ == '__main__':
-    wordle = Wordle(['marco', 'carlo', 'osier', 'rosen'])
-    wordle.submit_result(Result([grey('p'), yellow('e'), grey('a'), yellow('r'), grey('l')]))
-    wordle.submit_result(Result([grey('h'), grey('o'), yellow('r'), grey('s'), green('e')]))
-    wordle.submit_result(Result([grey('t'), green('r'), green('i'), grey('b'), green('e')]))
-    wordle.submit_result(Result([grey('c'), green('r'), green('i'), grey('m'), green('e')]))
+    wordle = Wordle(['marco', 'carlo'])
+    wordle.submit_result(Result([grey('g'), grey('r'), yellow('i'), grey('l'), grey('l')]))
+    wordle.submit_result(Result([grey('b'), grey('o'), grey('a'), yellow('r'), grey('d')]))
+    wordle.submit_result(Result([grey('s'), grey('t'), grey('a'), yellow('r'), grey('e')]))
     print(wordle.next_guess())
