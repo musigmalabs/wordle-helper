@@ -1,10 +1,10 @@
-from english_words import english_words_set as words
+from word_bank import get_words
 
 from wordle_helper import *
 from simulator import *
 
 
-candidate_words = sorted([w.lower() for w in words if len(w) == 5][:1000])
+candidate_words = get_words()
 
 
 def format_result(result, guess):
@@ -28,6 +28,8 @@ def run_word(word):
         guess = wordle.next_guess()
         if guess == sim.word:
             return attempts
+        
+        #print (word, guess)
 
         result = format_result(sim.guess(guess), guess)
         wordle.submit_result(result)
@@ -40,9 +42,11 @@ def run_experiment():
 
     for word in candidate_words:
         attempts = run_word(word)
+        if attempts > 6:
+            print (word, attempts)
         hist[attempts] += 1
     
-    print(hist)
+    print(sorted([rec for rec in hist.items()], key=lambda x: x[0]))
 
 
 if __name__ == '__main__':

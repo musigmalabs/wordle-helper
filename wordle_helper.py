@@ -1,9 +1,8 @@
-from english_words import english_words_set as words
-from collections import defaultdict, namedtuple
+from word_bank import get_words
+from collections import defaultdict
 
 
-candidate_words = set([w.lower() for w in words if len(w) == 5])
-
+candidate_words = get_words()
 
 GREY = 'grey'
 GREEN = 'green'
@@ -148,12 +147,27 @@ def score(hist, word):
     return s
 
 
+def score2(hist, word):
+    counts = defaultdict(lambda: 0)
+    for c in word:
+        counts[c] += 1
+    
+    s = 1
+
+    for c, count in counts.items():
+        score = hist[c]
+        s += score
+        s += ((count-1) * .0001 * score)
+    
+    return s
+
+
 def best_guess(candidates, guesses):
     """
     Produces the best guess from given candidates.
     """
     hist = build_histogram(candidates)
-    ranked = sorted([(w, score(hist, w)) for w in candidates if w not in guesses], key=lambda x: x[1], reverse=True)
+    ranked = sorted([(w, score2(hist, w)) for w in candidates if w not in guesses], key=lambda x: x[1], reverse=True)
 
     return ranked[0][0]
 
@@ -161,6 +175,7 @@ def best_guess(candidates, guesses):
 class Wordle:
 
     def __init__(self, blocked_words=[]):
+        self.words = candidate_words
         self.rules = [EqualsFilter('ne', w) for w in blocked_words]
         self.guesses = set()
     
@@ -184,7 +199,8 @@ class Wordle:
         Return the next guess to be presented to the wordle puzzle.
         """
 
-        candidates = self.filter_candidates(candidate_words)
+        candidates = self.filter_candidates(self.words)
+
         guess = best_guess(candidates, self.guesses)
         self.guesses.add(guess)
 
@@ -195,3 +211,13 @@ class Wordle:
         Provide the result from submitting a guess to the wordle puzzle.
         """
         self.rules += result.build_rules()
+        #print(self.rules)
+
+
+if __name__ == '__main__':
+    wordle = Wordle(['marco', 'carlo', 'osier', 'rosen'])
+    wordle.submit_result(Result([grey('p'), yellow('e'), grey('a'), yellow('r'), grey('l')]))
+    wordle.submit_result(Result([grey('h'), grey('o'), yellow('r'), grey('s'), green('e')]))
+    wordle.submit_result(Result([grey('t'), green('r'), green('i'), grey('b'), green('e')]))
+    wordle.submit_result(Result([grey('c'), green('r'), green('i'), grey('m'), green('e')]))
+    print(wordle.next_guess())

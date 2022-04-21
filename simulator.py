@@ -22,11 +22,13 @@ class WordleSimulator:
                 char_counter[c] -= 1
             elif c not in self.word:
                 result[i] = 'grey'
-            else:
+
+        for i, c in enumerate(word):
+            if result[i] == '':
                 if char_counter[c] != 0:
                     result[i] = 'yellow'
                     char_counter[c] -= 1
                 else:
                     result[i] = 'grey'
-        
+
         return result
